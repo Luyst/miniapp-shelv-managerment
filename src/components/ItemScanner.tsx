@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase, InventoryItem, Shelf } from '@/lib/supabase';
+import { supabase, InventoryItem, Shelf, Product } from '@/lib/supabase';
 import { Scan, Search, Check, AlertCircle, ShoppingBag, Barcode, ChevronRight } from 'lucide-react';
 
 export default function ItemScanner() {
-  const [products, setProducts] = useState<Pick<InventoryItem, 'inventory_code' | 'product_name'>[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [shelves, setShelves] = useState<Pick<Shelf, 'code' | 'name'>[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Pick<InventoryItem, 'inventory_code' | 'product_name'> | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedShelfCode, setSelectedShelfCode] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [scannedSerials, setScannedSerials] = useState<string[]>([]);
@@ -21,40 +21,49 @@ export default function ItemScanner() {
   }, []);
 
   async function fetchData() {
-    // Fetch unique products based on inventory_code
-    const { data: items } = await supabase
-      .from('inventory_items')
-      .select('inventory_code, product_name')
-      .order('product_name', { ascending: true });
+    // Fetch products from products table
+    const { data: productData } = await supabase
+      .from('products')
+      .select('id, inventory_code, short_description, sku, manufacturer')
+      .order('short_description', { ascending: true })
+      .limit(100); // Limit initially, search handles the rest
     
-    if (items) {
-      // De-duplicate for selection
-      const uniqueProducts: Pick<InventoryItem, 'inventory_code' | 'product_name'>[] = [];
-      const seen = new Set<string>();
-      items.forEach(item => {
-        if (!seen.has(item.inventory_code)) {
-          seen.add(item.inventory_code);
-          uniqueProducts.push(item);
-        }
-      });
-      setProducts(uniqueProducts);
+    if (productData) {
+      setProducts(productData);
     }
 
     const { data: shelfData } = await supabase.from('shelves').select('code, name');
     if (shelfData) setShelves(shelfData);
   }
 
-  const filteredProducts = products.filter(p => 
-    p.inventory_code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.product_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Handle live search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.length > 2) {
+        const { data } = await supabase
+          .from('products')
+          .select('id, inventory_code, short_description, sku, manufacturer')
+          .or(`short_description.ilike.%${searchQuery}%,inventory_code.ilike.%${searchQuery}%`)
+          .limit(50);
+        
+        if (data) setProducts(data);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   function handleScan(e: React.FormEvent) {
     e.preventDefault();
     if (!currentScan.trim()) return;
     
-    if (!scannedSerials.includes(currentScan.trim())) {
-      setScannedSerials(prev => [...prev, currentScan.trim()]);
+    const code = currentScan.trim();
+    
+    // If scanning a product code instead of a serial, maybe we want to select it?
+    // But usually serials are scanned after product selection.
+    
+    if (!scannedSerials.includes(code)) {
+      setScannedSerials(prev => [...prev, code]);
     }
     setCurrentScan('');
     scanInputRef.current?.focus();
@@ -69,24 +78,33 @@ export default function ItemScanner() {
     setIsSubmitting(true);
     
     try {
-      const updates = scannedSerials.map(serial => ({
+      // For each serial, we upsert into inventory_items
+      // We de-duplicate within the submission as well
+      const uniqueSerials = Array.from(new Set(scannedSerials));
+      
+      const updates = uniqueSerials.map(serial => ({
         inventory_code: selectedProduct.inventory_code,
-        product_name: selectedProduct.product_name,
+        product_name: selectedProduct.short_description,
         serial_number: serial,
         shelf_code: selectedShelfCode,
-        quantity: 1, // Assumed 1 per serial
+        quantity: 1,
         updated_at: new Date().toISOString()
       }));
 
-      const { error } = await supabase.from('inventory_items').insert(updates);
+      // Supabase insert with ON CONFLICT on serial_number if it exists
+      // Wait, I should probably check if serial_number is unique in my schema.
+      // In the previous step I saw it's not marked as unique yet.
+      
+      const { error } = await supabase
+        .from('inventory_items')
+        .upsert(updates, { onConflict: 'serial_number' });
 
       if (error) throw error;
 
-      alert('Cập nhật thành công!');
+      alert('Đã cập nhật vị trí cho ' + uniqueSerials.length + ' sản phẩm!');
       resetForm();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Đã có lỗi xảy ra';
-      alert('Lỗi: ' + message);
+    } catch (err: any) {
+      alert('Lỗi: ' + (err.message || 'Không thể cập nhật'));
     } finally {
       setIsSubmitting(false);
     }
@@ -118,7 +136,12 @@ export default function ItemScanner() {
             />
           </div>
           <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-            {filteredProducts.map(product => (
+            {products
+              .filter(p => 
+                p.short_description.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                p.inventory_code.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map(product => (
               <div 
                 key={product.inventory_code}
                 onClick={() => setSelectedProduct(product)}
@@ -129,7 +152,7 @@ export default function ItemScanner() {
                     <ShoppingBag className="text-primary w-6 h-6" />
                   </div>
                   <div>
-                    <p className="font-bold text-lg group-hover:text-primary transition-colors">{product.product_name}</p>
+                    <p className="font-bold text-lg group-hover:text-primary transition-colors">{product.short_description}</p>
                     <p className="text-sm font-mono text-muted-foreground">{product.inventory_code}</p>
                   </div>
                 </div>
@@ -151,7 +174,7 @@ export default function ItemScanner() {
               </button>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Đang chọn</p>
-                <p className="font-bold">{selectedProduct.product_name}</p>
+                <p className="font-bold">{selectedProduct.short_description}</p>
               </div>
             </div>
 

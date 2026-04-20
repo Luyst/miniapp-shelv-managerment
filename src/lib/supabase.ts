@@ -26,3 +26,11 @@ export type InventoryItem = {
   quantity: number;
   updated_at: string;
 };
+
+export type Product = {
+  id: number;
+  inventory_code: string;
+  short_description: string;
+  sku?: string;
+  manufacturer?: string;
+};
