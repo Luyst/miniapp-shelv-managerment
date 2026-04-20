@@ -5,6 +5,30 @@ import { LayoutDashboard } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
+  const isConfigured = 
+    process.env.NEXT_PUBLIC_SUPABASE_URL && 
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_url' &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!isConfigured) {
+    return (
+      <div className="container min-h-screen flex flex-col items-center justify-center text-center p-8">
+        <div className="premium-card max-w-md border-destructive/50">
+          <h1 className="text-2xl font-bold text-destructive mb-4">⚠️ Thiếu cấu hình Supabase</h1>
+          <p className="text-muted-foreground mb-6">
+            Vui lòng thêm biến môi trường <code className="bg-white/10 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> và 
+            <code className="bg-white/10 px-1 rounded ml-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> vào Vercel Settings để ứng dụng hoạt động.
+          </p>
+          <div className="text-left bg-black/40 p-4 rounded-lg font-mono text-xs">
+            <p>1. Vào Vercel Settings</p>
+            <p>2. Chọn Environment Variables</p>
+            <p>3. Thêm các khóa từ .env.local</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="container min-h-screen">
       {/* Premium Header */}
