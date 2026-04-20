@@ -1,79 +1,10 @@
-:root {
-  /* Premium Dark Theme */
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  
-  --card: 240 10% 6%;
-  --card-foreground: 0 0% 98%;
-  
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  
-  --primary: 263.4 70% 50.4%; /* Elegant Purple */
-  --primary-foreground: 210 20% 98%;
-  
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  
-  --accent: 263.4 70% 30%;
-  --accent-foreground: 0 0% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 263.4 70% 50.4%;
-  
-  --radius: 0.75rem;
-  
-  --glass: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
-}
-
-@font-face {
-  font-family: 'Inter';
-  src: url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #1e293b; /* Darker navy from the image */
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #1e293b;
-  --radius: 0.75rem;
-
-  /* Custom Status Colors */
-  --status-full: #1e293b;
-  --status-empty: #e0f2fe;
-  --status-empty-text: #0369a1;
-  --status-damaged: #fee2e2;
-  --status-damaged-text: #b91c1c;
-  --status-partial: #475569;
 }
 
 body {
@@ -81,105 +12,10 @@ body {
   color: var(--foreground);
   font-family: 'Inter', sans-serif;
   letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Premium Styles */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(226, 232, 240, 0.5);
-}
-
-.premium-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
-  padding: 1.5rem;
-  transition: all 0.2s ease;
-}
-
-.premium-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-/* Button & Input Overrides */
-button {
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius);
-  font-weight: 600;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-button.primary {
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-
-button.primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-button.secondary {
-  background: var(--secondary);
-  color: var(--secondary-foreground);
-  border: 1px solid var(--border);
-}
-
-button.secondary:hover {
-  background: #e2e8f0;
-}
-
-input, select {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--card);
-  transition: border-color 0.2s;
-  font-size: 0.95rem;
-}
-
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.1);
-}
-
-/* Status Badges */
-.badge {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border-radius: 9999px;
-  text-transform: uppercase;
-}
-
-.badge-full { background: var(--status-full); color: white; }
-.badge-empty { background: var(--status-empty); color: var(--status-empty-text); }
-.badge-damaged { background: var(--status-damaged); color: var(--status-damaged-text); }
-.badge-partial { background: #f1f5f9; color: #475569; border: 1px solid var(--border); }
-
-/* Animation Classes */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.animate-fade-in { animation: fadeIn 0.4s ease forwards; }
-.animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
-
-/* Scrollbar Customization */
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

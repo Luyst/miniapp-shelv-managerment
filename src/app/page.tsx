@@ -5,15 +5,12 @@ import Link from 'next/link';
 import { supabase, Shelf } from '@/lib/supabase';
 import { 
   Search, 
-  Map as MapIcon, 
-  Search as SearchIcon, 
-  Filter, 
-  RefreshCw, 
-  Warehouse,
-  ChevronDown
+  MapPin, 
+  Plus, 
+  ArrowRightLeft,
+  ChevronDown,
+  MoreVertical
 } from 'lucide-react';
-
-export const dynamic = 'force-dynamic';
 
 export default function Dashboard() {
   const [shelves, setShelves] = useState<(Shelf & { itemCount: number })[]>([]);
@@ -28,269 +25,167 @@ export default function Dashboard() {
     fetchShelves();
   }, []);
 
-  async function handleCreateShelf(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newShelfCode) return;
-    
-    setIsCreating(true);
-    const { error } = await supabase
-      .from('shelves')
-      .insert({ code: newShelfCode, name: newShelfName });
-    
-    if (!error) {
-      setNewShelfCode('');
-      setNewShelfName('');
-      setIsModalOpen(false);
-      fetchShelves();
-    } else {
-      alert('Lỗi tạo kệ: ' + error.message);
-    }
-    setIsCreating(false);
-  }
-
   async function fetchShelves() {
     setLoading(true);
-    const { data: shelfData } = await supabase
-      .from('shelves')
-      .select('*')
-      .order('code', { ascending: true });
-    
+    const { data: shelfData } = await supabase.from('shelves').select('*').order('code');
     if (shelfData) {
-      // Get item counts for occupancy calculation
-      const { data: countData } = await supabase
-        .from('inventory_items')
-        .select('shelf_code');
-      
-      const counts: Record<string, number> = {};
-      countData?.forEach(item => {
-        if (item.shelf_code) {
-          counts[item.shelf_code] = (counts[item.shelf_code] || 0) + 1;
-        }
-      });
-
-      const shelvesWithCounts = shelfData.map(s => ({
-        ...s,
-        itemCount: counts[s.code] || 0
-      }));
-      setShelves(shelvesWithCounts);
+      const { data: counts } = await supabase.from('inventory_items').select('shelf_code');
+      const countMap: Record<string, number> = {};
+      counts?.forEach(c => { if(c.shelf_code) countMap[c.shelf_code] = (countMap[c.shelf_code] || 0) + 1; });
+      setShelves(shelfData.map(s => ({ ...s, itemCount: countMap[s.code] || 0 })));
     }
     setLoading(false);
   }
 
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newShelfCode) return;
+    setIsCreating(true);
+    const { error } = await supabase.from('shelves').insert({ code: newShelfCode, name: newShelfName });
+    if (!error) {
+      setIsModalOpen(false);
+      setNewShelfCode('');
+      setNewShelfName('');
+      fetchShelves();
+    }
+    setIsCreating(false);
+  }
+
+  // Filter and then group
   const filteredShelves = shelves.filter(s => 
     s.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (s.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const zones = ['Zone A: High-Velocity Picks', 'Zone B: Bulk Storage'];
-  
-  // Logic to determine status badge
-  const getStatus = (count: number) => {
-    if (count === 0) return { label: 'EMPTY', class: 'badge-empty' };
-    if (count > 5) return { label: 'FULL', class: 'badge-full' };
-    return { label: `${count * 20}%`, class: 'badge-partial' };
-  };
-
-  // Group shelves by Zone (A, B, etc.)
-  const groupedShelves: Record<string, typeof filteredShelves> = {};
+  // Dynamic Grouping Logic: Default to 'CHUNG' if no category
+  const groupedShelves: Record<string, typeof shelves> = {};
   filteredShelves.forEach(shelf => {
-    const zoneLetter = shelf.code.split('-')[0] || 'Misc';
-    const zoneName = `Zone ${zoneLetter}: ${zoneLetter === 'A' ? 'High-Velocity Picks' : zoneLetter === 'B' ? 'Bulk Storage' : 'Standard Storage'}`;
-    if (!groupedShelves[zoneName]) groupedShelves[zoneName] = [];
-    groupedShelves[zoneName].push(shelf);
+    const group = shelf.name && /^[\d\s]+$/.test(shelf.name) ? shelf.name : (shelf.itemCount > 0 ? 'DỰ ÁN' : 'KHÁC');
+    if (!groupedShelves[group]) groupedShelves[group] = [];
+    groupedShelves[group].push(shelf);
   });
 
   return (
-    <main className="min-h-screen p-4 md:p-8 max-w-[1400px] mx-auto animate-fade-in pb-32">
-      {/* Header section equivalent to the top of Image 1 */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-4xl font-extrabold text-slate-900 flex items-center gap-2">
-            Sơ đồ Vị trí Kệ <span className="text-slate-400 font-normal">(Shelves)</span>
-          </h1>
-          <p className="text-slate-500 mt-1">Quản lý sức chứa và định vị hàng hóa trong hệ thống logistics.</p>
+    <div className="min-h-screen bg-white font-sans text-slate-900">
+      <div className="max-w-[1600px] mx-auto p-4 md:p-10">
+        {/* Header Section (Image 1 top) */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+          <div>
+            <div className="flex items-center gap-3 text-blue-600 mb-2">
+              <div className="bg-blue-50 p-2 rounded-xl">
+                 <MapPin className="w-6 h-6" />
+              </div>
+              <h1 className="text-2xl font-black uppercase tracking-tight text-slate-800">Sơ đồ vị trí kệ</h1>
+            </div>
+            <p className="text-slate-400 font-semibold text-sm">Quản lý và theo dõi sức chứa kho hàng.</p>
+          </div>
+          <div className="flex gap-4">
+            <button className="bg-white border-2 border-slate-100 text-slate-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+              <ArrowRightLeft className="w-5 h-5" /> Chuyển Kệ
+            </button>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-[#b91c1c] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-red-800 transition-all shadow-xl shadow-red-900/10"
+            >
+              <Plus className="w-5 h-5" /> Thêm Kệ
+            </button>
+          </div>
+        </header>
+
+        {/* Filter bar Section (Image 1 sub-header) */}
+        <div className="bg-slate-50/50 p-4 rounded-[2.5rem] border-2 border-slate-50 mb-12 flex flex-col md:flex-row items-center gap-4">
+          <div className="w-full md:w-80 relative">
+             <select className="appearance-none w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm">
+                <option>Cty - Kho CBS HCM</option>
+             </select>
+             <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+          </div>
+          <div className="flex-1 w-full relative">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 w-6 h-6" />
+            <input 
+              type="text" 
+              placeholder="Tìm tên kệ hoặc phân khu..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border-2 border-slate-100 rounded-2xl pl-16 pr-8 py-4 font-bold text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm placeholder:text-slate-300"
+            />
+          </div>
         </div>
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1">
-          <button className="text-sm px-4 py-2 bg-slate-50 border border-slate-200 rounded shadow-sm font-bold">2D Grid</button>
-          <button className="text-sm px-4 py-2 text-slate-400 font-bold hover:text-slate-600 transition-colors">3D View</button>
-        </div>
+
+        {/* Dynamic Groups (Image 1 main area) */}
+        {Object.entries(groupedShelves).sort((a,b) => b[1].length - a[1].length).map(([groupName, groupShelves]) => (
+          <div key={groupName} className="mb-16">
+            <div className="flex items-center justify-between mb-8 px-4">
+              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800">{groupName}</h2>
+              <span className="text-[11px] font-black uppercase text-blue-600 bg-blue-50/50 border border-blue-100 px-3 py-1 rounded-full">{groupShelves.length} VỊ TRÍ</span>
+            </div>
+            
+            <div className="bg-slate-50/30 border-2 border-slate-50 rounded-[3rem] p-10 grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-8">
+              {groupShelves.map((shelf) => (
+                <Link 
+                  href={`/shelves/${shelf.code}`}
+                  key={shelf.id}
+                  className={`relative group h-56 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center transition-all duration-500 hover:-translate-y-2 ${
+                    shelf.itemCount > 0 
+                      ? 'bg-[#0f172a] text-white shadow-2xl shadow-slate-900/40' 
+                      : 'bg-white text-slate-900 border-2 border-white hover:border-slate-100 shadow-xl shadow-slate-200/20'
+                  }`}
+                >
+                  <p className="font-black text-2xl tracking-tighter mb-4">{shelf.code}</p>
+                  {shelf.name && (
+                    <p className={`text-[11px] font-bold uppercase leading-tight line-clamp-3 px-2 ${shelf.itemCount > 0 ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {shelf.name}
+                    </p>
+                  )}
+                  <div className="absolute top-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <MoreVertical className="w-5 h-5 text-slate-500" />
+                  </div>
+                </Link>
+              ))}
+              {groupShelves.length === 0 && (
+                <div className="col-span-full py-20 flex items-center justify-center text-slate-300 italic text-lg font-bold">Không có dữ liệu</div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Filter Bar equivalent to the gray bar in Image 1 */}
-      <div className="flex flex-col lg:flex-row items-center gap-4 mb-8">
-        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2 w-full lg:w-auto min-w-[300px]">
-          <Warehouse className="text-slate-400 w-5 h-5" />
-          <span className="font-semibold text-slate-700 flex-1">Warehouse A - Ho Chi Minh City</span>
-          <ChevronDown className="text-slate-400 w-4 h-4" />
-        </div>
-        
-        <div className="relative flex-1 w-full">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search by SKU, Zone, or Level..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 py-3 bg-white border-slate-200"
-          />
-        </div>
-
-        <div className="flex gap-2 w-full lg:w-auto">
-          <button className="secondary flex-1 lg:flex-none">
-            <Filter className="w-4 h-4" /> Filter
-          </button>
-          <button onClick={fetchShelves} className="primary flex-1 lg:flex-none whitespace-nowrap">
-            Refresh Map
-          </button>
-          <button onClick={() => setIsModalOpen(true)} className="primary px-4">
-             Tạo Kệ
-          </button>
-        </div>
-      </div>
-
-      {/* Create Shelf Modal */}
+      {/* Modal for adding shelf */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-scale-in">
-            <h2 className="text-2xl font-black mb-6">Tạo Kệ Mới</h2>
-            <form onSubmit={handleCreateShelf} className="space-y-4">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+            <h2 className="text-3xl font-black text-slate-900 mb-2">Thêm Kệ Mới</h2>
+            <p className="text-slate-400 font-bold text-sm mb-8">Nhập thông tin để tạo vị trí lưu trữ mới.</p>
+            <form onSubmit={handleCreate} className="space-y-6">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Mã Kệ (Ví dụ: A-01)</label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-3 pl-1">Mã định danh (VD: A-01)</label>
                 <input 
                   autoFocus
-                  required
+                  placeholder="Nhập mã kệ..." 
                   value={newShelfCode}
                   onChange={(e) => setNewShelfCode(e.target.value.toUpperCase())}
-                  placeholder="Nhập mã kệ..."
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-black text-xl text-slate-800 placeholder:text-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Tên / Ghi chú (Optional)</label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-3 pl-1">Tên / Dự án (Tùy chọn)</label>
                 <input 
+                  placeholder="Nhập tên hoặc phân khu..." 
                   value={newShelfName}
                   onChange={(e) => setNewShelfName(e.target.value)}
-                  placeholder="Nhập tên kệ..."
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 placeholder:text-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
                 />
               </div>
-              <div className="flex gap-4 mt-8">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="secondary flex-1">Hủy</button>
-                <button type="submit" disabled={isCreating} className="primary flex-1">
-                  {isCreating ? 'Đang tạo...' : 'Tạo Kệ'}
+              <div className="flex gap-4 mt-10">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy</button>
+                <button disabled={isCreating} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all">
+                  {isCreating ? 'Đang tạo...' : 'Xác nhận tạo'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* Stats Board equivalent to the 4 cards in Image 1 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <div className="premium-card bg-white border-l-4 border-l-slate-900 border-border">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Total Capacity</p>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-extrabold text-slate-900">94%</span>
-            <span className="text-xs font-bold text-green-500 mb-1">+2.4% vs LW</span>
-          </div>
-          <div className="w-full bg-slate-100 h-1.5 mt-4 rounded-full overflow-hidden">
-            <div className="bg-slate-900 h-full" style={{ width: '94%' }}></div>
-          </div>
-        </div>
-
-        <div className="premium-card bg-slate-50/50">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Active SKU</p>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-extrabold text-slate-900">42</span>
-            <span className="text-xs font-bold text-blue-500 mb-1">Optimal</span>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 leading-none">Across 12 zones</p>
-        </div>
-
-        <div className="premium-card bg-slate-50/30">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Empty Shelves</p>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-extrabold text-slate-900">{shelves.filter(s => s.itemCount === 0).length}</span>
-            <span className="text-xs font-bold text-slate-500 mb-1">Available</span>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 leading-none">Zone C focus required</p>
-        </div>
-
-        <div className="premium-card bg-slate-900 text-white relative overflow-hidden">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Audit Score</p>
-          <div className="flex items-center gap-4 relative z-10">
-             <div className="w-12 h-12 rounded-full border-4 border-slate-700 flex items-center justify-center">
-                <span className="font-bold">A+</span>
-             </div>
-             <p className="text-xs text-slate-400">Excellent maintenance record</p>
-          </div>
-          <div className="absolute top-0 right-0 p-4 font-black text-6xl opacity-5 text-white select-none">SCORE</div>
-        </div>
-      </div>
-
-      {/* Shelf Sections equivalent to Zone A, Zone B in Image 1 */}
-      {Object.entries(groupedShelves).sort().map(([zoneName, zoneShelves], idx) => (
-        <section key={zoneName} className="mb-12">
-          <div className="flex items-center gap-4 mb-6 relative">
-            <h2 className="text-2xl font-black text-slate-800">{zoneName}</h2>
-            <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded tracking-tighter">LEVEL {idx * 4 + 1}-{idx * 4 + 4}</span>
-            <div className="flex-1 border-b border-slate-100 ml-4"></div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-            {zoneShelves.map((shelf) => {
-              const status = getStatus(shelf.itemCount);
-              return (
-                <Link 
-                  href={`/shelves/${shelf.code}`}
-                  key={shelf.id} 
-                  className={`premium-card p-4 h-32 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary transition-all group ${status.class === 'badge-damaged' ? 'bg-red-50 border-red-100' : 'bg-slate-900'}`}
-                  style={{
-                    backgroundColor: status.class === 'badge-full' ? '#1e293b' : 
-                                    status.class === 'badge-empty' ? '#ffffff' : 
-                                    status.class === 'badge-damaged' ? '#fee2e2' : '#f8fafc',
-                    borderColor: status.class === 'badge-empty' ? '#e2e8f0' : 'transparent',
-                    boxShadow: status.class === 'badge-empty' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
-                  }}
-                >
-                  <p className={`text-[10px] font-black tracking-tighter mb-4 ${status.class === 'badge-full' ? 'text-slate-400' : 'text-slate-500'}`}>{shelf.code}</p>
-                  <span className={`text-sm font-black tracking-widest ${
-                    status.class === 'badge-full' ? 'text-white' : 
-                    status.class === 'badge-empty' ? 'text-blue-600' : 
-                    status.class === 'badge-damaged' ? 'text-red-700' : 'text-slate-700'
-                  }`}>
-                    {status.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-
-      {filteredShelves.length === 0 && !loading && (
-        <div className="py-20 text-center text-slate-400 bg-white border border-slate-100 rounded-xl border-dashed">
-          No shelves found. Click "Tạo Kệ" to add one.
-        </div>
-      )}
-
-      {/* Legend equivalent to the floating box in Image 1 */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white border border-slate-200 shadow-2xl rounded-xl p-3 flex items-center gap-6 z-20 animate-scale-in">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-slate-900 rounded-sm"></div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Full Storage</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-slate-400 rounded-sm"></div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Partial</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 border border-slate-200 rounded-sm"></div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Available</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-100 rounded-sm"></div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Maintenance</span>
-        </div>
-      </div>
-    </main>
+    </div>
   );
 }
