@@ -51,13 +51,11 @@ export default function Dashboard() {
     setIsCreating(false);
   }
 
-  // Filter and then group
   const filteredShelves = shelves.filter(s => 
     s.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (s.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Dynamic Grouping Logic: Default to 'CHUNG' if no category
   const groupedShelves: Record<string, typeof shelves> = {};
   filteredShelves.forEach(shelf => {
     const group = shelf.name && /^[\d\s]+$/.test(shelf.name) ? shelf.name : (shelf.itemCount > 0 ? 'DỰ ÁN' : 'KHÁC');
@@ -66,120 +64,114 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900">
-      <div className="max-w-[1600px] mx-auto p-4 md:p-10">
-        {/* Header Section (Image 1 top) */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="min-h-screen font-sans text-slate-900 pb-20">
+      <div className="max-w-[1400px] mx-auto p-4 md:p-6 lg:p-8">
+        {/* Header Section - Smaller scale */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-3 text-blue-600 mb-2">
-              <div className="bg-blue-50 p-2 rounded-xl">
-                 <MapPin className="w-6 h-6" />
+            <div className="flex items-center gap-2 text-blue-600 mb-1">
+              <div className="bg-blue-50 p-1.5 rounded-lg">
+                 <MapPin className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-black uppercase tracking-tight text-slate-800">Sơ đồ vị trí kệ</h1>
+              <h1 className="text-xl font-black uppercase tracking-tight text-slate-800">Sơ đồ vị trí kệ</h1>
             </div>
-            <p className="text-slate-400 font-semibold text-sm">Quản lý và theo dõi sức chứa kho hàng.</p>
+            <p className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Quản lý và theo dõi sức chứa kho hàng.</p>
           </div>
-          <div className="flex gap-4">
-            <button className="bg-white border-2 border-slate-100 text-slate-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-              <ArrowRightLeft className="w-5 h-5" /> Chuyển Kệ
+          <div className="flex gap-3">
+            <button className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+              <ArrowRightLeft className="w-4 h-4" /> Chuyển Kệ
             </button>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-[#b91c1c] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-red-800 transition-all shadow-xl shadow-red-900/10"
+              className="bg-[#b91c1c] text-white px-5 py-2 rounded-xl text-sm font-black flex items-center gap-2 hover:bg-red-800 transition-all shadow-lg shadow-red-900/10"
             >
-              <Plus className="w-5 h-5" /> Thêm Kệ
+              <Plus className="w-4 h-4" /> Thêm Kệ
             </button>
           </div>
         </header>
 
-        {/* Filter bar Section (Image 1 sub-header) */}
-        <div className="bg-slate-50/50 p-4 rounded-[2.5rem] border-2 border-slate-50 mb-12 flex flex-col md:flex-row items-center gap-4">
-          <div className="w-full md:w-80 relative">
-             <select className="appearance-none w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm">
+        {/* Filter bar - More compact */}
+        <div className="bg-slate-200/50 p-3 rounded-2xl border border-slate-200/50 mb-10 flex flex-col md:flex-row items-center gap-3">
+          <div className="w-full md:w-64 relative text-sm">
+             <select className="appearance-none w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm">
                 <option>Cty - Kho CBS HCM</option>
              </select>
-             <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
           </div>
-          <div className="flex-1 w-full relative">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 w-6 h-6" />
+          <div className="flex-1 w-full relative text-sm">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5" />
             <input 
               type="text" 
               placeholder="Tìm tên kệ hoặc phân khu..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border-2 border-slate-100 rounded-2xl pl-16 pr-8 py-4 font-bold text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm placeholder:text-slate-300"
+              className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-6 py-3 font-bold text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm placeholder:text-slate-300"
             />
           </div>
         </div>
 
-        {/* Dynamic Groups (Image 1 main area) */}
+        {/* Groups - Reduced spacing */}
         {Object.entries(groupedShelves).sort((a,b) => b[1].length - a[1].length).map(([groupName, groupShelves]) => (
-          <div key={groupName} className="mb-16">
-            <div className="flex items-center justify-between mb-8 px-4">
-              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800">{groupName}</h2>
-              <span className="text-[11px] font-black uppercase text-blue-600 bg-blue-50/50 border border-blue-100 px-3 py-1 rounded-full">{groupShelves.length} VỊ TRÍ</span>
+          <div key={groupName} className="mb-10">
+            <div className="flex items-center justify-between mb-4 px-2">
+              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{groupName}</h2>
+              <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">{groupShelves.length} VỊ TRÍ</span>
             </div>
             
-            <div className="bg-slate-50/30 border-2 border-slate-50 rounded-[3rem] p-10 grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-8">
+            <div className="bg-slate-100/30 border border-slate-200/30 rounded-[2rem] p-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
               {groupShelves.map((shelf) => (
                 <Link 
                   href={`/shelves/${shelf.code}`}
                   key={shelf.id}
-                  className={`relative group h-56 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center transition-all duration-500 hover:-translate-y-2 ${
+                  className={`relative group h-40 rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-105 ${
                     shelf.itemCount > 0 
-                      ? 'bg-[#0f172a] text-white shadow-2xl shadow-slate-900/40' 
-                      : 'bg-white text-slate-900 border-2 border-white hover:border-slate-100 shadow-xl shadow-slate-200/20'
+                      ? 'bg-[#0f172a] text-white shadow-lg shadow-slate-900/20' 
+                      : 'bg-white text-slate-900 border border-slate-200 hover:border-blue-500/50 shadow-sm'
                   }`}
                 >
-                  <p className="font-black text-2xl tracking-tighter mb-4">{shelf.code}</p>
+                  <p className="font-black text-xl tracking-tighter mb-2">{shelf.code}</p>
                   {shelf.name && (
-                    <p className={`text-[11px] font-bold uppercase leading-tight line-clamp-3 px-2 ${shelf.itemCount > 0 ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className={`text-[9px] font-bold uppercase leading-tight line-clamp-2 px-1 ${shelf.itemCount > 0 ? 'text-slate-400' : 'text-slate-500'}`}>
                       {shelf.name}
                     </p>
                   )}
-                  <div className="absolute top-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical className="w-5 h-5 text-slate-500" />
-                  </div>
                 </Link>
               ))}
-              {groupShelves.length === 0 && (
-                <div className="col-span-full py-20 flex items-center justify-center text-slate-300 italic text-lg font-bold">Không có dữ liệu</div>
-              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Modal for adding shelf */}
+      {/* Modal - Compact */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in duration-300">
-            <h2 className="text-3xl font-black text-slate-900 mb-2">Thêm Kệ Mới</h2>
-            <p className="text-slate-400 font-bold text-sm mb-8">Nhập thông tin để tạo vị trí lưu trữ mới.</p>
-            <form onSubmit={handleCreate} className="space-y-6">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[1.5rem] p-8 max-w-md w-full shadow-2xl">
+            <h2 className="text-xl font-black text-slate-900 mb-1">Thêm Kệ Mới</h2>
+            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-6">Nhập thông tin kệ.</p>
+            <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-3 pl-1">Mã định danh (VD: A-01)</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2 pl-1">Mã định danh</label>
                 <input 
                   autoFocus
-                  placeholder="Nhập mã kệ..." 
+                  placeholder="A-01..." 
                   value={newShelfCode}
                   onChange={(e) => setNewShelfCode(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-black text-xl text-slate-800 placeholder:text-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-black text-lg text-slate-800 placeholder:text-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-3 pl-1">Tên / Dự án (Tùy chọn)</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2 pl-1">Tên / Dự án</label>
                 <input 
-                  placeholder="Nhập tên hoặc phân khu..." 
+                  placeholder="Tên dự án..." 
                   value={newShelfName}
                   onChange={(e) => setNewShelfName(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 placeholder:text-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 placeholder:text-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
                 />
               </div>
-              <div className="flex gap-4 mt-10">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy</button>
-                <button disabled={isCreating} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all">
-                  {isCreating ? 'Đang tạo...' : 'Xác nhận tạo'}
+              <div className="flex gap-3 mt-8">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy</button>
+                <button disabled={isCreating} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all">
+                  {isCreating ? '...' : 'TẠO KỆ'}
                 </button>
               </div>
             </form>
